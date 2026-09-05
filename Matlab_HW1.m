@@ -305,7 +305,7 @@ deltaTin = NInputTorque - InputTorque;
 
 %% Circle Intersections Technique
 
-
+%Static Preallocation
 N = 360;
 ForceAx_l_all = zeros(1,N); 
 ForceAy_l_all = zeros(1,N);
@@ -326,6 +326,7 @@ InputTorque_l_all = zeros(1,N);
 
 initial_theta = atan2(B(2)-A(2), B(1) - A(1));
 
+%syms for Static Force Solution
 syms FAx_l FAy_l FBx_l FBy_l FCx_l FCy_l FDx_l FDy_l FEx_l FEy_l FFx_l FFy_l FGx_l FGy_l Tin_l
 
 F_A_loop = [FAx_l FAy_l 0];
@@ -336,8 +337,6 @@ F_E_loop = [FEx_l FEy_l 0];
 F_F_loop = [FFx_l FFy_l 0];
 F_G_loop = [FGx_l FGy_l 0];
 T_in_loop = [0 0 Tin_l];
-
-
 
 if (initial_theta < 0)
     inputAngle = 2 * pi + initial_theta;
@@ -436,8 +435,6 @@ S5_new = (F_new + G)/2;
 
 %New Static Solution
 
-
-
 %Equilibrium of each link
 %AB
 Loopeqn1 = F_A_loop + F_B_loop + WAB == 0;
@@ -457,27 +454,29 @@ Loopeqn10 = cross((F_new-S5_new), -F_F_loop) + cross((G-S5_new), F_G_loop) == 0;
 
 
 LoopeqnMatrix = [Loopeqn1 Loopeqn2 Loopeqn3 Loopeqn4 Loopeqn5 Loopeqn6 Loopeqn7 Loopeqn8 Loopeqn9 Loopeqn10];
-[Aeqns, beqns] = equationsToMatrix(LoopeqnMatrix, [FAx_l FAy_l FBx_l FBy_l FCx_l FCy_l FDx_l FDy_l FEx_l FEy_l FFx_l FFy_l FGx_l FGy_l Tin_l]);
-x = double(Aeqns)\double(beqns);
+LoopStaticSolution = solve(LoopeqnMatrix, [FAx_l FAy_l FBx_l FBy_l FCx_l FCy_l FDx_l FDy_l FEx_l FEy_l FFx_l FFy_l FGx_l FGy_l Tin_l]);
 
-ForceAx_l_all(theta) = x(1);
-ForceAy_l_all(theta) = x(2);
-ForceBx_l_all(theta) = x(3);
-ForceBy_l_all(theta) = x(4);
-ForceCx_l_all(theta) = x(5);
-ForceCy_l_all(theta) = x(6);
-ForceDx_l_all(theta) = x(7);
-ForceDy_l_all(theta) = x(8);
-ForceEx_l_all(theta) = x(9);
-ForceEy_l_all(theta) = x(10);
-ForceFx_l_all(theta) = x(11);
-ForceFy_l_all(theta) = x(12);
-ForceGx_l_all(theta) = x(13);
-ForceGy_l_all(theta) = x(14);
-InputTorque_l_all(theta) = x(15);
+
+%get each force value for each theta (1-360), store for later plotting
+ForceAx_l_all(theta) = LoopStaticSolution.FAx_l;
+ForceAy_l_all(theta) = LoopStaticSolution.FAy_l;
+ForceBx_l_all(theta) = LoopStaticSolution.FBx_l;
+ForceBy_l_all(theta) = LoopStaticSolution.FBy_l;
+ForceCx_l_all(theta) = LoopStaticSolution.FCx_l;
+ForceCy_l_all(theta) = LoopStaticSolution.FCy_l;
+ForceDx_l_all(theta) = LoopStaticSolution.FDx_l;
+ForceDy_l_all(theta) = LoopStaticSolution.FDy_l;
+ForceEx_l_all(theta) = LoopStaticSolution.FEx_l;
+ForceEy_l_all(theta) = LoopStaticSolution.FEy_l;
+ForceFx_l_all(theta) = LoopStaticSolution.FFx_l;
+ForceFy_l_all(theta) = LoopStaticSolution.FFy_l;
+ForceGx_l_all(theta) = LoopStaticSolution.FGx_l;
+ForceGy_l_all(theta) = LoopStaticSolution.FGy_l;
+InputTorque_l_all(theta) = LoopStaticSolution.Tin_l;
 
 end
 
+% Plot Positions
 figure;            
 hold on;
 grid on;
@@ -495,6 +494,7 @@ legend('B', 'C', 'E', 'F');
 
 hold off;
 
+%Plot Forces (static)
 forceData = {ForceAx_l_all, ForceAy_l_all, ForceBx_l_all, ForceBy_l_all, ForceCx_l_all, ForceCy_l_all, ForceDx_l_all, ForceDy_l_all, ForceEx_l_all, ForceEy_l_all, ForceFx_l_all, ForceFy_l_all, ForceGx_l_all, ForceGy_l_all};
 
 forceNames = {'ForceAx', 'ForceAy', 'ForceBx', 'ForceBy', 'ForceCx', 'ForceCy', 'ForceDx', 'ForceDy', 'ForceEx', 'ForceEy', 'ForceFx', 'ForceFy', 'ForceGx', 'ForceGy'};
@@ -511,4 +511,3 @@ end
 
 
 
-%shoutout claude carry
