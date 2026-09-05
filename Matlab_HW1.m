@@ -84,21 +84,22 @@ eqn10 = cross((F-S5), -F_F) + cross((G-S5), F_G) == 0;
 eqnMatrix = [eqn1 eqn2 eqn3 eqn4 eqn5 eqn6 eqn7 eqn8 eqn9 eqn10];
 StaticSolution = solve(eqnMatrix, [FAx FAy FBx FBy FCx FCy FDx FDy FEx FEy FFx FFy FGx FGy Tin]);
 
-ForceAx = double(StaticSolution.FAx)
-ForceAy = double(StaticSolution.FAy)
-ForceBx = double(StaticSolution.FBx)
-ForceBy = double(StaticSolution.FBy)
-ForceCx = double(StaticSolution.FCx)
-ForceCy = double(StaticSolution.FCy)
-ForceDx = double(StaticSolution.FDx)
-ForceDy = double(StaticSolution.FDy)
-ForceEx = double(StaticSolution.FEx)
-ForceEy = double(StaticSolution.FEy)
-ForceFx = double(StaticSolution.FFx)
-ForceFy = double(StaticSolution.FFy)
-ForceGx = double(StaticSolution.FGx)
-ForceGy = double(StaticSolution.FGy)
-InputTorque = double(StaticSolution.Tin)
+
+ForceAx = double(StaticSolution.FAx);
+ForceAy = double(StaticSolution.FAy);
+ForceBx = double(StaticSolution.FBx);
+ForceBy = double(StaticSolution.FBy);
+ForceCx = double(StaticSolution.FCx);
+ForceCy = double(StaticSolution.FCy);
+ForceDx = double(StaticSolution.FDx);
+ForceDy = double(StaticSolution.FDy);
+ForceEx = double(StaticSolution.FEx);
+ForceEy = double(StaticSolution.FEy);
+ForceFx = double(StaticSolution.FFx);
+ForceFy = double(StaticSolution.FFy);
+ForceGx = double(StaticSolution.FGx);
+ForceGy = double(StaticSolution.FGy);
+InputTorque = double(StaticSolution.Tin);
 
 %% Newton's Second Law
 
@@ -270,21 +271,21 @@ NEqnMatrix = [Neqn1 Neqn2 Neqn3 Neqn4 Neqn5 Neqn6 Neqn7 Neqn8 Neqn9 Neqn10];
 DynamicSolution = solve(NEqnMatrix, [NFAx NFAy NFBx NFBy NFCx NFCy NFDx NFDy NFEx NFEy NFFx NFFy NFGx NFGy NTin]);
 
 %Values
-NForce_Ax = double(DynamicSolution.NFAx)
-NForce_Ay = double(DynamicSolution.NFAy)
-NForce_Bx = double(DynamicSolution.NFBx)
-NForce_By = double(DynamicSolution.NFBy)
-NForce_Cx = double(DynamicSolution.NFCx)
-NForce_Cy = double(DynamicSolution.NFCy)
-NForce_Dx = double(DynamicSolution.NFDx)
-NForce_Dy = double(DynamicSolution.NFDy)
-NForce_Ex = double(DynamicSolution.NFEx)
-NForce_Ey = double(DynamicSolution.NFEy)
-NForce_Fx = double(DynamicSolution.NFFx)
-NForce_Fy = double(DynamicSolution.NFFy)
-NForce_Gx = double(DynamicSolution.NFGx)
-NForce_Gy = double(DynamicSolution.NFGy)
-NInputTorque = double(DynamicSolution.NTin)
+NForce_Ax = double(DynamicSolution.NFAx);
+NForce_Ay = double(DynamicSolution.NFAy);
+NForce_Bx = double(DynamicSolution.NFBx);
+NForce_By = double(DynamicSolution.NFBy);
+NForce_Cx = double(DynamicSolution.NFCx);
+NForce_Cy = double(DynamicSolution.NFCy);
+NForce_Dx = double(DynamicSolution.NFDx);
+NForce_Dy = double(DynamicSolution.NFDy);
+NForce_Ex = double(DynamicSolution.NFEx);
+NForce_Ey = double(DynamicSolution.NFEy);
+NForce_Fx = double(DynamicSolution.NFFx);
+NForce_Fy = double(DynamicSolution.NFFy);
+NForce_Gx = double(DynamicSolution.NFGx);
+NForce_Gy = double(DynamicSolution.NFGy);
+NInputTorque = double(DynamicSolution.NTin);
 
 %% Comparisons
 
@@ -304,7 +305,39 @@ deltaTin = NInputTorque - InputTorque;
 
 %% Circle Intersections Technique
 
+
+N = 360;
+ForceAx_l_all = zeros(1,N); 
+ForceAy_l_all = zeros(1,N);
+ForceBx_l_all = zeros(1,N);
+ForceBy_l_all = zeros(1,N);
+ForceCx_l_all = zeros(1,N); 
+ForceCy_l_all = zeros(1,N);
+ForceDx_l_all = zeros(1,N); 
+ForceDy_l_all = zeros(1,N);
+ForceEx_l_all = zeros(1,N);
+ForceEy_l_all = zeros(1,N);
+ForceFx_l_all = zeros(1,N); 
+ForceFy_l_all = zeros(1,N);
+ForceGx_l_all = zeros(1,N); 
+ForceGy_l_all = zeros(1,N);
+InputTorque_l_all = zeros(1,N);
+
+
 initial_theta = atan2(B(2)-A(2), B(1) - A(1));
+
+syms FAx_l FAy_l FBx_l FBy_l FCx_l FCy_l FDx_l FDy_l FEx_l FEy_l FFx_l FFy_l FGx_l FGy_l Tin_l
+
+F_A_loop = [FAx_l FAy_l 0];
+F_B_loop = [FBx_l FBy_l 0];
+F_C_loop = [FCx_l FCy_l 0];
+F_D_loop = [FDx_l FDy_l 0];
+F_E_loop = [FEx_l FEy_l 0];
+F_F_loop = [FFx_l FFy_l 0];
+F_G_loop = [FGx_l FGy_l 0];
+T_in_loop = [0 0 Tin_l];
+
+
 
 if (initial_theta < 0)
     inputAngle = 2 * pi + initial_theta;
@@ -394,7 +427,54 @@ for theta =  1:1:360
     E = E_new;
     F = F_new;
 
+% New COMs
+S1_new = (A + B_new)/2;
+S2_new = (B_new + C_new)/2;
+S3_new = (D + E_new)/2;
+S4_new = (E_new + F_new)/2;
+S5_new = (F_new + G)/2;
 
+%New Static Solution
+
+
+
+%Equilibrium of each link
+%AB
+Loopeqn1 = F_A_loop + F_B_loop + WAB == 0;
+Loopeqn2 = cross((A-S1_new), F_A_loop) + cross(B_new-S1_new, F_B_loop) + T_in_loop == 0;
+%BC
+Loopeqn3 = -F_B_loop + F_C_loop + WBC == 0;
+Loopeqn4 = cross((B_new-S2_new), -F_B_loop) + cross((C_new-S2_new), F_C_loop) == 0;
+%CDE
+Loopeqn5 = -F_C_loop + F_D_loop + F_E_loop + WCDE == 0;
+Loopeqn6 = cross((C_new-S3_new), -F_C_loop) + cross((D-S3_new), F_D_loop) + cross((E_new-S3_new), F_E_loop) == 0;
+%FE
+Loopeqn7 = F_F_loop - F_E_loop + WEF + ArtifactWeight == 0;
+Loopeqn8 = cross((F_new-S4_new), F_F_loop) + cross((E_new-S4_new), -F_E_loop) == 0;
+%FG
+Loopeqn9 = -F_F_loop + F_G_loop + WFG == 0;
+Loopeqn10 = cross((F_new-S5_new), -F_F_loop) + cross((G-S5_new), F_G_loop) == 0;
+
+
+LoopeqnMatrix = [Loopeqn1 Loopeqn2 Loopeqn3 Loopeqn4 Loopeqn5 Loopeqn6 Loopeqn7 Loopeqn8 Loopeqn9 Loopeqn10];
+[Aeqns, beqns] = equationsToMatrix(LoopeqnMatrix, [FAx_l FAy_l FBx_l FBy_l FCx_l FCy_l FDx_l FDy_l FEx_l FEy_l FFx_l FFy_l FGx_l FGy_l Tin_l]);
+x = double(Aeqns)\double(beqns);
+
+ForceAx_l_all(theta) = x(1);
+ForceAy_l_all(theta) = x(2);
+ForceBx_l_all(theta) = x(3);
+ForceBy_l_all(theta) = x(4);
+ForceCx_l_all(theta) = x(5);
+ForceCy_l_all(theta) = x(6);
+ForceDx_l_all(theta) = x(7);
+ForceDy_l_all(theta) = x(8);
+ForceEx_l_all(theta) = x(9);
+ForceEy_l_all(theta) = x(10);
+ForceFx_l_all(theta) = x(11);
+ForceFy_l_all(theta) = x(12);
+ForceGx_l_all(theta) = x(13);
+ForceGy_l_all(theta) = x(14);
+InputTorque_l_all(theta) = x(15);
 
 end
 
@@ -408,10 +488,27 @@ plot(new_C_x, new_C_y, 'r-', 'LineWidth', 1.5);
 plot(new_E_x, new_E_y, 'g-', 'LineWidth', 1.5);
 plot(new_F_x, new_F_y, 'm-', 'LineWidth', 1.5);
 
-
 xlabel('X Position');
 ylabel('Y Position');
 title('Joint Trajectories');
 legend('B', 'C', 'E', 'F');
 
 hold off;
+
+forceData = {ForceAx_l_all, ForceAy_l_all, ForceBx_l_all, ForceBy_l_all, ForceCx_l_all, ForceCy_l_all, ForceDx_l_all, ForceDy_l_all, ForceEx_l_all, ForceEy_l_all, ForceFx_l_all, ForceFy_l_all, ForceGx_l_all, ForceGy_l_all};
+
+forceNames = {'ForceAx', 'ForceAy', 'ForceBx', 'ForceBy', 'ForceCx', 'ForceCy', 'ForceDx', 'ForceDy', 'ForceEx', 'ForceEy', 'ForceFx', 'ForceFy', 'ForceGx', 'ForceGy'};
+
+
+for i = 1:length(forceData)
+figure;
+plot(forceData{i}, 'LineWidth', 1.5);
+grid on;
+xlabel('Theta (degrees)');
+ylabel([forceNames{i} ' (Newtons)']);
+title(forceNames{i});
+end
+
+
+
+%shoutout claude carry
