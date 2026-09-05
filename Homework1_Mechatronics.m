@@ -44,13 +44,15 @@ F_F = [FFx FFy 0];
 F_G = [FGx FGy 0];
 T_in = [0 0 Tin];
 
+alpha_AB = [0 0 0];
+
 % Angular Velocities Calculations
 
 % Loop ABCDA
 
 syms wBC wCDE
 
-omega_AB = [0 0 1]; % WHY IS THIS 1?
+omega_AB = [0 0 12500 * 2 * pi / (9 * 3600)];
 omega_BC = [0 0 wBC];
 omega_CDE = [0 0 wCDE];
 
@@ -80,6 +82,46 @@ loop2Solution = solve(eqn12, [wGF wFE]);
 angularVelocity_GF = double(loop2Solution.wGF);
 
 angularVelocity_FE = double(loop2Solution.wFE);
+
+% Velocity at Joint A = 0
+% Velocity at Joint B
+vB = cross(omega_AB, B - A);
+
+% Velocity at Joint C
+% vC = vC_A = vC_B + vB_A
+vC_B = cross(omega_BC, C - B);
+vC = vC_B + vB;
+
+% Velocity at Joint D = 0
+% Velocity at Joint E
+% vE = vE_D = vE_A because D and A are both grounded
+vE = cross(omega_CDE, E -D);
+
+% Velocity at Joint F
+% vF = vF_G = vF_A because G and A are both grounded
+vF = cross(omega_GF, F - G);
+
+% Velocity at Joint G = 0
+% Velocities of Center of Masses
+% Velocity of S1
+% vS1 = vS1_A
+vS1 = cross(omega_AB, S1 - A);
+
+% Velocity of S2
+% vS2 = vS2_A = vS2_B + vB
+vS2 = cross(omega_AB, S2 - A) + vB;
+
+% Velocity of S3
+% vS3 = vS3_D
+vS3 = cross(omega_CDE, S3 - D);
+
+% Velocity of S4
+% vS4 = vS4_D = vS4_E + vE
+vS4 = cross(omega_CDE, S4 - E) + vE;
+
+% Velocity of S5
+% vS5 = vS5_G
+vS5 = cross(omega_GF, S5 - G);
 
 % Circle Intersections Technique
 
@@ -125,6 +167,7 @@ for theta =  1:1:360
         end
     else
         fprintf('New position C cannot be determined at angle: %d degree', theta);
+        break
     end
 
     % New position of E
@@ -155,7 +198,105 @@ for theta =  1:1:360
         else
             F_new = F_2;
         end
+
+    else 
+        fprintf('New position F cannot be determined at angle: %d degree', theta)
+        break
     end
+
+    S1_new = (B_new + A)/2;
+    S2_new = (B_new + C_new)/2;
+    S3_new = (D + E_new)/2;
+    S4_new = (E_new + F_new) / 2;
+    S5_new = (F_new + G) / 2;
+    
+    % Calculating angular velocities for links at every theta
+    
+    syms wBC_new wCDE_new
+
+    omega_BC_new = [0 0 wBC_new];
+    omega_CDE_new = [0 0 wCDE_new];
+
+    %omega_AB is constant so no need to recalculate
+
+    eqn18 = cross(omega_AB, B_new - A) + cross(omega_BC_new, C_new - B_new) + cross(omega_CDE_new, D - C_new) == [0 0 0];
+
+    loop1Solution = solve(eqn18, [wBC_new wCDE_new]);
+
+    angularVelocity_BC_new = double(loop1Solution.wBC_new);
+    angularVelocity_CDE_new = double(loop1Solution.wCDE_new);
+
+    % Second Loop GFEDG
+
+    syms wGF_new wFE_new
+
+    omega_CDE_new = [0 0 angularVelocity_CDE_new];
+
+    omega_BC_new = [0 0 angularVelocity_BC_new];
+
+    omega_GF_new = [0 0 wGF_new];
+
+    omega_FE_new = [0 0 wFE_new];
+
+    eqn19 = cross(omega_GF_new, F_new - G) + cross(omega_FE_new, E_new - F_new) + cross(omega_CDE_new, D - E_new) == [0 0 0];
+
+    loop2Solution = solve(eqn19, [wGF_new wFE_new]);
+
+    angularVelocity_GF_new = double(loop2Solution.wGF_new);
+
+    angularVelocity_FE_new = double(loop2Solution.wFE_new);
+
+    omega_GF_new = [0 0 angularVelocity_GF_new];
+    omega_FE_new = [0 0 angularVelocity_FE_new];
+
+    % Calculating Velocities for joints at each angle of theta
+    vB_new = cross(omega_AB, B_new - A);
+
+    vC_B_new = cross(omega_BC_new, C_new - B_new);
+    vC_new = vC_B_new + vB_new;
+    vE_new = cross(omega_CDE_new, E_new - D);
+    vF_new = cross(omega_GF_new, F_new - G);
+
+    %Angular Accelerations Calculations at each angle
+
+    syms aBC_new aCDE_new
+    alphaBC_new = [0 0 aBC_new];
+    alphaCDE_new = [0 0 aCDE_new];
+    a_B_A_new = cross(alpha_AB, B_new-A) + cross(omega_AB, cross(omega_AB, B_new-A));
+    a_C_B_new = cross(alphaBC_new, C_new-B_new) + cross(omega_BC_new, cross(omega_BC_new, C_new-B_new));
+    a_D_C_new = cross(alphaCDE_new, D-C_new) + cross(omega_CDE_new, cross(omega_CDE_new, D-C_new));
+    eqn20 = a_B_A_new + a_C_B_new + a_D_C_new == 0;
+    loop1AccSolution = solve(eqn20, [aBC_new aCDE_new]);
+    alpha_BC_new = double(loop1AccSolution.aBC_new);
+    alpha_CDE_new = double(loop1AccSolution.aCDE_new);
+
+    % Loop 2 acceleration (solve for alphaGF, alphaFE)
+    syms aGF_new aFE_new
+    alphaGF_new = [0 0 aGF_new];
+    alphaFE_new = [0 0 aFE_new];
+    alphaCDE_vector_new = [0 0 alpha_CDE_new];
+    a_F_G_new = cross(alphaGF_new, F_new - G) + cross(omega_GF_new, cross(omega_GF_new, F_new - G));
+    a_E_F_new = cross(alphaFE_new, E_new - F_new) + cross(omega_FE_new, cross(omega_FE_new, E_new - F_new));
+    a_D_E_new = cross(alphaCDE_vector_new, D - E_new) + cross(omega_CDE_new, cross(omega_CDE_new, D - E_new));
+    eqn21 = a_F_G_new + a_E_F_new + a_D_E_new == 0;
+    loop2AccSolution = solve(eqn21, [aGF_new aFE_new]);
+    alpha_GF_new = double(loop2AccSolution.aGF_new);
+    alpha_FE_new = double(loop2AccSolution.aFE_new);
+
+
+    % Accelerations Calculations
+    alphaBC_vector_new = [0 0 alpha_BC_new];
+    alphaCDE_vector_new = [0 0 alpha_CDE_new];
+    alphaFE_vector_new = [0 0 alpha_FE_new];
+    alphaGF_vector_new = [0 0 alpha_GF_new];
+
+
+    %Joints - 
+    a_BA_new = cross(alpha_AB, B_new - A) + cross(omega_AB, (cross(omega_AB, B_new - A)));
+    a_CB_new = cross(alphaBC_vector_new, C_new - B_new) + cross(omega_BC_new, (cross(omega_BC_new, C_new - B_new)));
+    a_CA_new = a_CB_new + a_BA_new;
+    a_ED_new = cross(alphaCDE_vector_new, E_new - D) + cross(omega_CDE_new, (cross(omega_CDE_new, E_new - D)));
+    a_FG_new = cross(alphaGF_vector_new, F_new - G) + cross(omega_GF_new, cross(omega_GF_new, F_new - G));
 
     % Store values for plotting
 
@@ -168,6 +309,32 @@ for theta =  1:1:360
     new_F_x(theta) = F_new(1);
     new_F_y(theta) = F_new(2);
 
+    % Store angular velocities for plotting
+    new_omega_BC(theta) = angularVelocity_BC_new;
+    new_omega_CDE(theta) = angularVelocity_CDE_new;
+    new_omega_GF(theta) = angularVelocity_GF_new;
+    new_omega_FE(theta) = angularVelocity_FE_new;
+
+    % Store linear velocities for plotting
+    new_vB(theta) = norm(vB_new);
+    new_vC(theta) = norm(vC_new);
+    new_vE(theta) = norm(vE_new);
+    new_vF(theta) = norm(vF_new);
+
+    % Store angular accelerations for plotting
+    new_alpha_BC(theta) = alpha_BC_new;
+    new_alpha_CDE(theta) = alpha_CDE_new;
+    new_alpha_GF(theta) = alpha_GF_new;
+    new_alpha_FE(theta) = alpha_FE_new;
+
+    % Store accelerations of joints for plotting
+    new_aB(theta) = norm(a_BA_new);
+    new_aC(theta) = norm(a_CA_new);
+    new_aE(theta) = norm(a_ED_new);
+    new_aF(theta) = norm(a_FG_new);
+
+
+
     B = B_new;
     C = C_new;
     E = E_new;
@@ -177,6 +344,7 @@ for theta =  1:1:360
 
 end
 
+% Joint trajectories graph
 figure;            
 hold on;
 grid on;
@@ -186,10 +354,96 @@ plot(new_B_x, new_B_y, 'b-', 'LineWidth', 1.5);
 plot(new_C_x, new_C_y, 'r-', 'LineWidth', 1.5);
 plot(new_E_x, new_E_y, 'g-', 'LineWidth', 1.5);
 plot(new_F_x, new_F_y, 'm-', 'LineWidth', 1.5);
+xticks(0:30:360);
 
 xlabel('X Position');
 ylabel('Y Position');
 title('Joint Trajectories');
+legend('B', 'C', 'E', 'F');
+
+hold off;
+
+% Angular Velocities graph
+figure;            
+hold on;
+grid on;
+axis equal;
+
+position_of_crank = 1:1:360;
+
+plot(position_of_crank, new_omega_BC, 'b-', 'LineWidth', 1.5);
+plot(position_of_crank, new_omega_CDE, 'r-', 'LineWidth', 1.5);
+plot(position_of_crank, new_omega_GF, 'g-', 'LineWidth', 1.5);
+plot(position_of_crank, new_omega_FE, 'm-', 'LineWidth', 1.5);
+xticks(0:30:360);
+
+xlabel('Position of Crank');
+ylabel('Angular Velocity of link');
+title('Angular Velocity vs Crank Position');
+legend('BC', 'CDE', 'GF', 'FE');
+
+hold off;
+
+% Linear Velocities graph
+figure;            
+hold on;
+grid on;
+axis equal;
+
+position_of_crank = 1:1:360;
+
+plot(position_of_crank, new_vB, 'b-', 'LineWidth', 1.5);
+plot(position_of_crank, new_vC, 'r-', 'LineWidth', 1.5);
+plot(position_of_crank, new_vE, 'g-', 'LineWidth', 1.5);
+plot(position_of_crank, new_vF, 'm-', 'LineWidth', 1.5);
+xticks(0:90:360);
+
+xlabel('Position of crank');
+ylabel('Velocity of Joint');
+title('Joint Velocities vs Crank Position');
+legend('B', 'C', 'E', 'F');
+
+hold off;
+
+
+% Angular Acceleration graph
+figure;            
+hold on;
+grid on;
+axis equal;
+
+position_of_crank = 1:1:360;
+
+plot(position_of_crank, new_alpha_BC, 'b-', 'LineWidth', 1.5);
+plot(position_of_crank, new_alpha_CDE, 'r-', 'LineWidth', 1.5);
+plot(position_of_crank, new_alpha_GF, 'g-', 'LineWidth', 1.5);
+plot(position_of_crank, new_alpha_FE, 'm-', 'LineWidth', 1.5);
+xticks(0:90:360);
+
+xlabel('Position of crank');
+ylabel('Angular Acceleration of Link');
+title('Angular Acceleration of Link vs Crank Position');
+legend('BC', 'CDE', 'GF', 'FE');
+
+hold off;
+
+% Linear Acceleration of Joints graph
+figure;            
+hold on;
+grid on;
+axis equal;
+
+position_of_crank = 1:1:360;
+
+plot(position_of_crank, new_aB, 'b-', 'LineWidth', 1.5);
+plot(position_of_crank, new_aC, 'r-', 'LineWidth', 1.5);
+plot(position_of_crank, new_aE, 'g-', 'LineWidth', 1.5);
+plot(position_of_crank, new_aF, 'm-', 'LineWidth', 1.5);
+xticks(0:90:360);
+
+xlabel('Position of crank');
+ylabel('Acceleration of Joint');
+title('Acceleration of Joint vs Crank Position');
 legend('B', 'C', 'E', 'F');
 
 hold off;
