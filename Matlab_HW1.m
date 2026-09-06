@@ -1,4 +1,3 @@
-
 % Joint Locations 
 
 A = [1.4 0.485 0];
@@ -107,7 +106,7 @@ InputTorque = double(StaticSolution.Tin);
 
 % Loop ABCDA
 syms wBC wCDE
-omega_AB = [0 0 ((12500*(2*pi))/(9*3600)) ]; % WHY IS THIS 1?
+omega_AB = [0 0 ((12500*(2*pi))/(9*3600)) ]; 
 omega_BC = [0 0 wBC];
 omega_CDE = [0 0 wCDE];
 
@@ -323,11 +322,10 @@ ForceGx_l_all = zeros(1,N);
 ForceGy_l_all = zeros(1,N);
 InputTorque_l_all = zeros(1,N);
 
-
-initial_theta = atan2(B(2)-A(2), B(1) - A(1));
-
 %syms for Static Force Solution
 syms FAx_l FAy_l FBx_l FBy_l FCx_l FCy_l FDx_l FDy_l FEx_l FEy_l FFx_l FFy_l FGx_l FGy_l Tin_l
+
+% static forces vector preallocation
 
 F_A_loop = [FAx_l FAy_l 0];
 F_B_loop = [FBx_l FBy_l 0];
@@ -337,6 +335,44 @@ F_E_loop = [FEx_l FEy_l 0];
 F_F_loop = [FFx_l FFy_l 0];
 F_G_loop = [FGx_l FGy_l 0];
 T_in_loop = [0 0 Tin_l];
+
+% Dynamic Solution Preallocation
+
+NForceAx_l_all = zeros(1,N); 
+NForceAy_l_all = zeros(1,N);
+NForceBx_l_all = zeros(1,N);
+NForceBy_l_all = zeros(1,N);
+NForceCx_l_all = zeros(1,N); 
+NForceCy_l_all = zeros(1,N);
+NForceDx_l_all = zeros(1,N); 
+NForceDy_l_all = zeros(1,N);
+NForceEx_l_all = zeros(1,N);
+NForceEy_l_all = zeros(1,N);
+NForceFx_l_all = zeros(1,N); 
+NForceFy_l_all = zeros(1,N);
+NForceGx_l_all = zeros(1,N); 
+NForceGy_l_all = zeros(1,N);
+NInputTorque = zeros(1,N);
+
+
+%syms for Dynamic Solution
+
+syms NFAx_l NFAy_l NFBx_l NFBy_l NFCx_l NFCy_l NFDx_l NFDy_l NFEx_l NFEy_l NFFx_l NFFy_l NFGx_l NFGy_l NTin_l
+
+% dynamic forces vector preallocation
+
+NF_A_loop = [NFAx_l NFAy_l 0];
+NF_B_loop = [NFBx_l NFBy_l 0];
+NF_C_loop = [NFCx_l NFCy_l 0];
+NF_D_loop = [NFDx_l NFDy_l 0];
+NF_E_loop = [NFEx_l NFEy_l 0];
+NF_F_loop = [NFFx_l NFFy_l 0];
+NF_G_loop = [NFGx_l NFGy_l 0];
+NT_in_loop = [0 0 NTin_l];
+
+%starting theta position
+
+initial_theta = atan2(B(2)-A(2), B(1) - A(1));
 
 if (initial_theta < 0)
     inputAngle = 2 * pi + initial_theta;
@@ -474,9 +510,181 @@ ForceGx_l_all(theta) = LoopStaticSolution.FGx_l;
 ForceGy_l_all(theta) = LoopStaticSolution.FGy_l;
 InputTorque_l_all(theta) = LoopStaticSolution.Tin_l;
 
+% Calculating angular velocities for links at every theta
+    
+    syms wBC_new wCDE_new
+
+    omega_BC_new = [0 0 wBC_new];
+    omega_CDE_new = [0 0 wCDE_new];
+
+    %omega_AB is constant so no need to recalculate
+
+    eqn18 = cross(omega_AB, B_new - A) + cross(omega_BC_new, C_new - B_new) + cross(omega_CDE_new, D - C_new) == [0 0 0];
+
+    loop1Solution = solve(eqn18, [wBC_new wCDE_new]);
+
+    angularVelocity_BC_new = double(loop1Solution.wBC_new);
+    angularVelocity_CDE_new = double(loop1Solution.wCDE_new);
+
+    % Second Loop GFEDG
+
+    syms wGF_new wFE_new
+
+    omega_CDE_new = [0 0 angularVelocity_CDE_new];
+
+    omega_BC_new = [0 0 angularVelocity_BC_new];
+
+    omega_GF_new = [0 0 wGF_new];
+
+    omega_FE_new = [0 0 wFE_new];
+
+    eqn19 = cross(omega_GF_new, F_new - G) + cross(omega_FE_new, E_new - F_new) + cross(omega_CDE_new, D - E_new) == [0 0 0];
+
+    loop2Solution = solve(eqn19, [wGF_new wFE_new]);
+
+    angularVelocity_GF_new = double(loop2Solution.wGF_new);
+
+    angularVelocity_FE_new = double(loop2Solution.wFE_new);
+
+    omega_GF_new = [0 0 angularVelocity_GF_new];
+    omega_FE_new = [0 0 angularVelocity_FE_new];
+
+    % Calculating Velocities for joints at each angle of theta
+    vB_new = cross(omega_AB, B_new - A);
+
+    vC_B_new = cross(omega_BC_new, C_new - B_new);
+    vC_new = vC_B_new + vB_new;
+    vE_new = cross(omega_CDE_new, E_new - D);
+    vF_new = cross(omega_GF_new, F_new - G);
+
+    %Angular Accelerations Calculations at each angle
+
+    syms aBC_new aCDE_new
+    alphaBC_new = [0 0 aBC_new];
+    alphaCDE_new = [0 0 aCDE_new];
+    a_B_A_new = cross(alpha_AB, B_new-A) + cross(omega_AB, cross(omega_AB, B_new-A));
+    a_C_B_new = cross(alphaBC_new, C_new-B_new) + cross(omega_BC_new, cross(omega_BC_new, C_new-B_new));
+    a_D_C_new = cross(alphaCDE_new, D-C_new) + cross(omega_CDE_new, cross(omega_CDE_new, D-C_new));
+    eqn20 = a_B_A_new + a_C_B_new + a_D_C_new == 0;
+    loop1AccSolution = solve(eqn20, [aBC_new aCDE_new]);
+    alpha_BC_new = double(loop1AccSolution.aBC_new);
+    alpha_CDE_new = double(loop1AccSolution.aCDE_new);
+
+    % Loop 2 acceleration (solve for alphaGF, alphaFE)
+    syms aGF_new aFE_new
+    alphaGF_new = [0 0 aGF_new];
+    alphaFE_new = [0 0 aFE_new];
+    alphaCDE_vector_new = [0 0 alpha_CDE_new];
+    a_F_G_new = cross(alphaGF_new, F_new - G) + cross(omega_GF_new, cross(omega_GF_new, F_new - G));
+    a_E_F_new = cross(alphaFE_new, E_new - F_new) + cross(omega_FE_new, cross(omega_FE_new, E_new - F_new));
+    a_D_E_new = cross(alphaCDE_vector_new, D - E_new) + cross(omega_CDE_new, cross(omega_CDE_new, D - E_new));
+    eqn21 = a_F_G_new + a_E_F_new + a_D_E_new == 0;
+    loop2AccSolution = solve(eqn21, [aGF_new aFE_new]);
+    alpha_GF_new = double(loop2AccSolution.aGF_new);
+    alpha_FE_new = double(loop2AccSolution.aFE_new);
+
+
+    % Accelerations Calculations
+    alphaBC_vector_new = [0 0 alpha_BC_new];
+    alphaCDE_vector_new = [0 0 alpha_CDE_new];
+    alphaFE_vector_new = [0 0 alpha_FE_new];
+    alphaGF_vector_new = [0 0 alpha_GF_new];
+
+
+
+    %Joints - 
+    a_BA_new = cross(alpha_AB, B_new - A) + cross(omega_AB, (cross(omega_AB, B_new - A)));
+    a_CB_new = cross(alphaBC_vector_new, C_new - B_new) + cross(omega_BC_new, (cross(omega_BC_new, C_new - B_new)));
+    a_CA_new = a_CB_new + a_BA_new;
+    a_ED_new = cross(alphaCDE_vector_new, E_new - D) + cross(omega_CDE_new, (cross(omega_CDE_new, E_new - D)));
+    a_FG_new = cross(alphaGF_vector_new, F_new - G) + cross(omega_GF_new, cross(omega_GF_new, F_new - G));
+
+    % Joint, Centers of Mass
+    a_s1_A_l = cross(alpha_AB, S1_new-A) + cross(omega_AB, cross(omega_AB, S1_new-A));
+    a_s2_A_l = a_BA_new + cross(alphaBC_vector_new, S2_new-B_new) + cross(omega_BC_new, cross(omega_BC_new, S2_new-B_new));
+    a_s3_D_l = cross(alphaCDE_vector_new, S3_new-D) + cross(omega_CDE_new, cross(omega_CDE_new, S3_new-D));
+    a_s4_D_l = a_ED_new + cross(alphaFE_vector_new, S4_new-E_new) + cross(omega_FE_new, cross(omega_FE_new, S4_new-E_new));
+    a_s5_G_l = cross(alphaGF_vector_new, S5_new-G) + cross(omega_GF_new, cross(omega_GF_new, S5_new-G));
+
+    % Store values for plotting
+
+    new_B_x(theta) = B_new(1);
+    new_B_y(theta) = B_new(2);
+    new_C_x(theta) = C_new(1);
+    new_C_y(theta) = C_new(2);
+    new_E_x(theta) = E_new(1);
+    new_E_y(theta) = E_new(2);
+    new_F_x(theta) = F_new(1);
+    new_F_y(theta) = F_new(2);
+
+    % Store angular velocities for plotting
+    new_omega_BC(theta) = angularVelocity_BC_new;
+    new_omega_CDE(theta) = angularVelocity_CDE_new;
+    new_omega_GF(theta) = angularVelocity_GF_new;
+    new_omega_FE(theta) = angularVelocity_FE_new;
+
+    % Store linear velocities for plotting
+    new_vB(theta) = norm(vB_new);
+    new_vC(theta) = norm(vC_new);
+    new_vE(theta) = norm(vE_new);
+    new_vF(theta) = norm(vF_new);
+
+    % Store angular accelerations for plotting
+    new_alpha_BC(theta) = alpha_BC_new;
+    new_alpha_CDE(theta) = alpha_CDE_new;
+    new_alpha_GF(theta) = alpha_GF_new;
+    new_alpha_FE(theta) = alpha_FE_new;
+
+    % Store accelerations of joints for plotting
+    new_aB(theta) = norm(a_BA_new);
+    new_aC(theta) = norm(a_CA_new);
+    new_aE(theta) = norm(a_ED_new);
+    new_aF(theta) = norm(a_FG_new);
+
+
+%Dynamic Forces Equations 
+%Link AB
+LoopNeqn1 = NF_A_loop + NF_B_loop + WAB == MassAB * a_s1_A_l;
+LoopNeqn2 = cross(A-S1_new, NF_A_loop) + cross(B_new - S1_new, NF_B_loop) + NT_in_loop == J_AB * alpha_AB;
+
+% Link BC
+LoopNeqn3 = -NF_B_loop + NF_C_loop + WBC == MassBC * a_s2_A_l;
+LoopNeqn4 = cross(B_new-S2_new, -NF_B_loop) + cross(C_new-S2_new, NF_C_loop) == J_BC * alphaBC_vector_new;
+
+% Link CDE
+LoopNeqn5 = -NF_C_loop + NF_D_loop + NF_E_loop + WCDE == MassCDE * a_s3_D_l;
+LoopNeqn6 = cross(C_new-S3_new, -NF_C_loop) + cross(D-S3_new, NF_D_loop) + cross(E_new-S3_new, NF_E_loop) == J_CDE * alphaCDE_vector_new;
+
+% Link EF
+LoopNeqn7 = -NF_E_loop + NF_F_loop + WEF + ArtifactWeight == MassEF * a_s4_D_l;
+LoopNeqn8 = cross(E_new-S4_new, -NF_E_loop) + cross(F_new-S4_new, NF_F_loop) == J_EF * alphaFE_vector_new;
+
+% Link FG
+LoopNeqn9 = -NF_F_loop + NF_G_loop + WFG == MassGF * a_s5_G_l;
+LoopNeqn10 = cross(F_new-S5_new, -NF_F_loop) + cross(G-S5_new, NF_G_loop) == J_FG * alphaGF_vector_new;
+
+LoopDynamiceqnMatrix = [LoopNeqn1 LoopNeqn2 LoopNeqn3 LoopNeqn4 LoopNeqn5 LoopNeqn6 LoopNeqn7 LoopNeqn8 LoopNeqn9 LoopNeqn10];
+LoopDynamicSolution = solve(LoopDynamiceqnMatrix, [NFAx_l NFAy_l NFBx_l NFBy_l NFCx_l NFCy_l NFDx_l NFDy_l NFEx_l NFEy_l NFFx_l NFFy_l NFGx_l NFGy_l NTin_l]);
+
+% Store dynamic forces for later plotting
+NForceAx_l_all(theta) = LoopDynamicSolution.NFAx_l;
+NForceAy_l_all(theta) = LoopDynamicSolution.NFAy_l;
+NForceBx_l_all(theta) = LoopDynamicSolution.NFBx_l;
+NForceBy_l_all(theta) = LoopDynamicSolution.NFBy_l;
+NForceCx_l_all(theta) = LoopDynamicSolution.NFCx_l;
+NForceCy_l_all(theta) = LoopDynamicSolution.NFCy_l;
+NForceDx_l_all(theta) = LoopDynamicSolution.NFDx_l;
+NForceDy_l_all(theta) = LoopDynamicSolution.NFDy_l;
+NForceEx_l_all(theta) = LoopDynamicSolution.NFEx_l;
+NForceEy_l_all(theta) = LoopDynamicSolution.NFEy_l;
+NForceFx_l_all(theta) = LoopDynamicSolution.NFFx_l;
+NForceFy_l_all(theta) = LoopDynamicSolution.NFFy_l;
+NForceGx_l_all(theta) = LoopDynamicSolution.NFGx_l;
+NForceGy_l_all(theta) = LoopDynamicSolution.NFGy_l;
+NInputTorque(theta) = LoopDynamicSolution.NTin_l;
 end
 
-% Plot Positions
+% Joint trajectories graph
 figure;            
 hold on;
 grid on;
@@ -486,6 +694,7 @@ plot(new_B_x, new_B_y, 'b-', 'LineWidth', 1.5);
 plot(new_C_x, new_C_y, 'r-', 'LineWidth', 1.5);
 plot(new_E_x, new_E_y, 'g-', 'LineWidth', 1.5);
 plot(new_F_x, new_F_y, 'm-', 'LineWidth', 1.5);
+xticks(0:30:360);
 
 xlabel('X Position');
 ylabel('Y Position');
@@ -501,13 +710,112 @@ forceNames = {'ForceAx', 'ForceAy', 'ForceBx', 'ForceBy', 'ForceCx', 'ForceCy', 
 
 
 for i = 1:length(forceData)
-figure;
-plot(forceData{i}, 'LineWidth', 1.5);
-grid on;
-xlabel('Theta (degrees)');
-ylabel([forceNames{i} ' (Newtons)']);
-title(forceNames{i});
+    figure;
+    plot(forceData{i}, 'LineWidth', 1.5);
+    grid on;
+    xlabel('Theta (degrees)');
+    ylabel([forceNames{i} ' (Newtons)']);
+    title(forceNames{i});
 end
 
+% Angular Velocities graph
+figure;            
+hold on;
+grid on;
+axis equal;
 
+position_of_crank = 1:1:360;
+
+plot(position_of_crank, new_omega_BC, 'b-', 'LineWidth', 1.5);
+plot(position_of_crank, new_omega_CDE, 'r-', 'LineWidth', 1.5);
+plot(position_of_crank, new_omega_GF, 'g-', 'LineWidth', 1.5);
+plot(position_of_crank, new_omega_FE, 'm-', 'LineWidth', 1.5);
+xticks(0:30:360);
+
+xlabel('Position of Crank');
+ylabel('Angular Velocity of link');
+title('Angular Velocity vs Crank Position');
+legend('BC', 'CDE', 'GF', 'FE');
+
+hold off;
+
+% Linear Velocities graph
+figure;            
+hold on;
+grid on;
+axis equal;
+
+position_of_crank = 1:1:360;
+
+plot(position_of_crank, new_vB, 'b-', 'LineWidth', 1.5);
+plot(position_of_crank, new_vC, 'r-', 'LineWidth', 1.5);
+plot(position_of_crank, new_vE, 'g-', 'LineWidth', 1.5);
+plot(position_of_crank, new_vF, 'm-', 'LineWidth', 1.5);
+xticks(0:90:360);
+
+xlabel('Position of crank');
+ylabel('Velocity of Joint');
+title('Joint Velocities vs Crank Position');
+legend('B', 'C', 'E', 'F');
+
+hold off;
+
+
+% Angular Acceleration graph
+figure;            
+hold on;
+grid on;
+axis equal;
+
+position_of_crank = 1:1:360;
+
+plot(position_of_crank, new_alpha_BC, 'b-', 'LineWidth', 1.5);
+plot(position_of_crank, new_alpha_CDE, 'r-', 'LineWidth', 1.5);
+plot(position_of_crank, new_alpha_GF, 'g-', 'LineWidth', 1.5);
+plot(position_of_crank, new_alpha_FE, 'm-', 'LineWidth', 1.5);
+xticks(0:90:360);
+
+xlabel('Position of crank');
+ylabel('Angular Acceleration of Link');
+title('Angular Acceleration of Link vs Crank Position');
+legend('BC', 'CDE', 'GF', 'FE');
+
+hold off;
+
+% Linear Acceleration of Joints graph
+figure;            
+hold on;
+grid on;
+axis equal;
+
+position_of_crank = 1:1:360;
+
+plot(position_of_crank, new_aB, 'b-', 'LineWidth', 1.5);
+plot(position_of_crank, new_aC, 'r-', 'LineWidth', 1.5);
+plot(position_of_crank, new_aE, 'g-', 'LineWidth', 1.5);
+plot(position_of_crank, new_aF, 'm-', 'LineWidth', 1.5);
+xticks(0:90:360);
+
+xlabel('Position of crank');
+ylabel('Acceleration of Joint');
+title('Acceleration of Joint vs Crank Position');
+legend('B', 'C', 'E', 'F');
+
+hold off;
+
+%Plot Forces (Dynamic)
+
+DynamicforceData = {NForceAx_l_all, NForceAy_l_all, NForceBx_l_all, NForceBy_l_all, NForceCx_l_all, NForceCy_l_all, NForceDx_l_all, NForceDy_l_all, NForceEx_l_all, NForceEy_l_all, NForceFx_l_all, NForceFy_l_all, NForceGx_l_all, NForceGy_l_all};
+
+DynamicforceNames = {'NForceAx', 'NForceAy', 'NForceBx', 'NForceBy', 'NForceCx', 'NForceCy', 'NForceDx', 'NForceDy', 'NForceEx', 'NForceEy', 'NForceFx', 'NForceFy', 'NForceGx', 'NForceGy'};
+
+for i = 1:length(DynamicforceData)
+    figure;
+    grid on;
+    plot(DynamicforceData{i}, 'LineWidth', 1.5)
+    ylabel([DynamicforceNames{i} ' (Newtons)'])
+    xlabel('Theta (degrees)')
+    title([DynamicforceNames{i} ' vs Theta'])
+
+end
 
