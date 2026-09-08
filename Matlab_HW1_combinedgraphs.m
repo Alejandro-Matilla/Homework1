@@ -352,7 +352,7 @@ NForceFx_l_all = zeros(1,N);
 NForceFy_l_all = zeros(1,N);
 NForceGx_l_all = zeros(1,N); 
 NForceGy_l_all = zeros(1,N);
-NInputTorque = zeros(1,N);
+NInputTorque_l_all = zeros(1,N);
 
 
 %syms for Dynamic Solution
@@ -690,7 +690,7 @@ NForceFx_l_all(theta) = LoopDynamicSolution.NFFx_l;
 NForceFy_l_all(theta) = LoopDynamicSolution.NFFy_l;
 NForceGx_l_all(theta) = LoopDynamicSolution.NFGx_l;
 NForceGy_l_all(theta) = LoopDynamicSolution.NFGy_l;
-NInputTorque(theta) = LoopDynamicSolution.NTin_l;
+NInputTorque_l_all(theta) = LoopDynamicSolution.NTin_l;
 end
 
 % Joint trajectories graph
@@ -920,10 +920,29 @@ legend(DynamicforceNamesy, 'Location', 'best');
 
 hold off;
 
+%Torques
 
+figure;
+hold on;
+grid on;
+
+plot(position_of_crank, NInputTorque_l_all, 'LineWidth', 1.5);
+plot(position_of_crank, InputTorque_l_all, 'LineWidth', 1.5);
+
+xlabel('Position of Crank (Degrees)')
+ylabel('Torque Values (Newton-meter)')
+title('Static and Dynamic Torque values vs Position of Crank')
+legend('Dynamic Torque', 'Static Torque')
+
+hold off;
+
+
+%saving for comparisons
 
 DatasetArrayPosition = [new_B_x(:), new_B_y(:), new_C_x(:), new_C_y(:), new_E_x(:), new_E_y(:), new_F_x(:), new_F_y(:)]
 DatasetArrayAngVel = [new_omega_BC(:), new_omega_CDE(:), new_omega_GF(:), new_omega_FE(:)];
 DatasetArrayLinVel = [new_vB(:), new_vC(:), new_vE(:), new_vF(:)];
 DatasetArrayAngAcc = [new_alpha_BC(:), new_alpha_CDE(:), new_alpha_GF(:), new_alpha_FE(:)];
 DatasetArrayLinAcc = [new_aB(:), new_aC(:), new_aE(:), new_aF(:)];
+
+save('MechanismResults.mat', 'DatasetArrayPosition', 'DatasetArrayAngVel', 'DatasetArrayLinVel','DatasetArrayAngAcc', 'DatasetArrayLinAcc');
