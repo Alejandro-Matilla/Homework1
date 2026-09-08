@@ -617,11 +617,15 @@ InputTorque_l_all(theta) = LoopStaticSolution.Tin_l;
     new_F_x(theta) = F_new(1);
     new_F_y(theta) = F_new(2);
 
+    
+
     % Store angular velocities for plotting
     new_omega_BC(theta) = angularVelocity_BC_new;
     new_omega_CDE(theta) = angularVelocity_CDE_new;
     new_omega_GF(theta) = angularVelocity_GF_new;
     new_omega_FE(theta) = angularVelocity_FE_new;
+
+    
 
     % Store linear velocities for plotting
     new_vB(theta) = norm(vB_new);
@@ -629,17 +633,22 @@ InputTorque_l_all(theta) = LoopStaticSolution.Tin_l;
     new_vE(theta) = norm(vE_new);
     new_vF(theta) = norm(vF_new);
 
+   
+
     % Store angular accelerations for plotting
     new_alpha_BC(theta) = alpha_BC_new;
     new_alpha_CDE(theta) = alpha_CDE_new;
     new_alpha_GF(theta) = alpha_GF_new;
     new_alpha_FE(theta) = alpha_FE_new;
 
+ 
+
     % Store accelerations of joints for plotting
     new_aB(theta) = norm(a_BA_new);
     new_aC(theta) = norm(a_CA_new);
     new_aE(theta) = norm(a_ED_new);
     new_aF(theta) = norm(a_FG_new);
+
 
 
 %Dynamic Forces Equations 
@@ -758,7 +767,7 @@ hold off;
 figure;            
 hold on;
 grid on;
-axis equal;
+
 
 position_of_crank = 1:1:360;
 
@@ -773,13 +782,19 @@ ylabel('Angular Velocity of link');
 title('Angular Velocity vs Crank Position');
 legend('BC', 'CDE', 'GF', 'FE');
 
+ymin = -5;
+ymax = +5;
+margin = 0.5;
+
+ylim([ymin - margin, ymax + margin]);
+
 hold off;
 
 % Linear Velocities graph
 figure;            
 hold on;
 grid on;
-axis equal;
+
 
 position_of_crank = 1:1:360;
 
@@ -794,6 +809,12 @@ ylabel('Velocity of Joint');
 title('Joint Velocities vs Crank Position');
 legend('B', 'C', 'E', 'F');
 
+ymin = 0;
+ymax = +10;
+margin = 0.5;
+
+ylim([ymin - margin, ymax + margin]);
+
 hold off;
 
 
@@ -801,7 +822,7 @@ hold off;
 figure;            
 hold on;
 grid on;
-axis equal;
+
 
 position_of_crank = 1:1:360;
 
@@ -816,13 +837,19 @@ ylabel('Angular Acceleration of Link');
 title('Angular Acceleration of Link vs Crank Position');
 legend('BC', 'CDE', 'GF', 'FE');
 
+ymin = -20;
+ymax = +10;
+margin = 0.5;
+
+ylim([ymin - margin, ymax + margin]);
+
 hold off;
 
 % Linear Acceleration of Joints graph
 figure;            
 hold on;
 grid on;
-axis equal;
+
 
 position_of_crank = 1:1:360;
 
@@ -836,6 +863,12 @@ xlabel('Position of crank');
 ylabel('Acceleration of Joint');
 title('Acceleration of Joint vs Crank Position');
 legend('B', 'C', 'E', 'F');
+
+ymin = 0;
+ymax = +50;
+margin = 0.5;
+
+ylim([ymin - margin, ymax + margin]);
 
 hold off;
 
@@ -886,3 +919,11 @@ title('Dynamic Forces vs Theta');
 legend(DynamicforceNamesy, 'Location', 'best');
 
 hold off;
+
+
+
+DatasetArrayPosition = [new_B_x(:), new_B_y(:), new_C_x(:), new_C_y(:), new_E_x(:), new_E_y(:), new_F_x(:), new_F_y(:)]
+DatasetArrayAngVel = [new_omega_BC(:), new_omega_CDE(:), new_omega_GF(:), new_omega_FE(:)];
+DatasetArrayLinVel = [new_vB(:), new_vC(:), new_vE(:), new_vF(:)];
+DatasetArrayAngAcc = [new_alpha_BC(:), new_alpha_CDE(:), new_alpha_GF(:), new_alpha_FE(:)];
+DatasetArrayLinAcc = [new_aB(:), new_aC(:), new_aE(:), new_aF(:)];
